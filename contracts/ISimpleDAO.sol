@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./Member.sol";
@@ -19,5 +20,5 @@ interface ISimpleDAO {
 
     function implementProposal(uint256 amountToSend) external;
 
-    function minimumEntranceFee() public view returns (uint256);
+    function minimumEntranceFee() external view returns (uint256);
 }

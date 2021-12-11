@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./Member.sol";
 import "./ISimpleDAO.sol";
-import "@openzeppelin/blob/master/contracts/security/ReentrancyGuard.sol";
+
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
     mapping(address => uint256) public memberStakes;
     mapping(address => Status) public proposalStatus;
-    mapping(address => int256) public proposalNo;
+    mapping(address => uint256) public proposalNo;
     mapping(address => uint256) public proposalYes;
     mapping(address => mapping(address => bool)) votingHistory;
 
@@ -25,8 +27,8 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
         uint8 _quorum,
         uint256 _dollarEntranceFee
     ) {
-        require votingThreshold = _votingThreshold;
-        quroum = _quorum;
+        votingThreshold = _votingThreshold;
+        quorum = _quorum;
         dollarEntranceFee = _dollarEntranceFee;
     }
 
@@ -46,13 +48,19 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
         emit NewMember(address(member), msg.value);
     }
 
+    /* 
+    function submitProposal() external {
+        require();
+    }
+    */
+
     /**
      * @dev Function called by a any member of the DAO to vote on a proposal
      * given its address and according to their voting weight.
      * NOTE: nonReentrant modifier used to prevent double-voting
      */
     function vote(address proposal, bool y_n) external nonReentrant {
-        require(memberStakes[msg.sender], "You are not a member");
+        require(memberStakes[msg.sender] > 0, "You are not a member");
         require(
             proposalStatus[proposal] == Status.OPEN,
             "Proposal is not open to voting"
@@ -67,7 +75,7 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
         // if y_n is YES, add weight to the proposalYes count, otherwise to proposalNo
         uint256 votingWeight = memberStakes[msg.sender];
         uint256 totalNo = proposalNo[proposal];
-        int256 totalYes = proposalYes[proposal];
+        uint256 totalYes = proposalYes[proposal];
 
         if (y_n) {
             proposalYes[proposal] = totalYes + votingWeight;
@@ -75,7 +83,7 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
             proposalNo[proposal] = totalNo + votingWeight;
         }
 
-        emit Voted(msg.sender, proposal, y_n, stake);
+        emit Voted(msg.sender, proposal, y_n, votingWeight);
     }
 
     /**
@@ -120,7 +128,7 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
         );
 
         // we send the requested amount along with all available gas
-        (bool success, ) = msg.sender.call.value(amountToSend)("");
+        (bool success, ) = msg.sender.call{value: amountToSend}("");
         require(success, "Transfer failed.");
     }
 

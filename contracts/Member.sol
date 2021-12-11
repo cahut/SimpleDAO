@@ -1,17 +1,19 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./ISimpleDAO.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Member is Ownable {
-    address private DAOaddress;
+    address private _DAOaddress;
 
-    constructor() public {
+    constructor() {
         // the DAO contract calls the constructor, so owner() returns the DAO address at initialization
         _DAOaddress = owner();
         // ownership is transferred to creator's address within the DAO's joinDAO() function
     }
 
-    function vote(address proposal, bool y_n) public view onlyOwner {
+    function vote(address proposal, bool y_n) public onlyOwner {
         ISimpleDAO(_DAOaddress).vote(proposal, y_n);
     }
 
