@@ -2,9 +2,10 @@
 pragma solidity ^0.8.0;
 
 import "./ISimpleDAO.sol";
+import "./IMember.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract Member is Ownable {
+contract Member is IMember, Ownable {
     address private _DAOaddress;
 
     constructor() {

@@ -41,18 +41,32 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
             msg.value >= minimumEntranceFee(),
             "Payment below minimum entrance fee"
         );
+        require(memberStakes[msg.sender] == 0, "You are already a member");
+
         Member member = new Member();
-        member.transferOwnership(msg.sender);
+        memberStakes[address(member)] = msg.value;
 
-        memberStakes[msg.sender] = msg.value;
         emit NewMember(address(member), msg.value);
+        member.transferOwnership(msg.sender);
     }
 
-    /* 
-    function submitProposal() external {
-        require();
+    /**
+     * @dev Function called by a Proposal contract to register itself
+     * and become open to voting until quorum is reached
+     */
+    function submitProposal(uint256 _amountRequested) external {
+        address proposal = msg.sender;
+        require(
+            address(this).balance >= _amountRequested,
+            "Requested amount exceeds treasury"
+        );
+        require(
+            (proposalYes[proposal] == 0) && (proposalNo[proposal] == 0),
+            "Proposal has already been submitted"
+        );
+
+        proposalStatus[proposal] = Status.OPEN;
     }
-    */
 
     /**
      * @dev Function called by a any member of the DAO to vote on a proposal
@@ -65,10 +79,7 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
             proposalStatus[proposal] == Status.OPEN,
             "Proposal is not open to voting"
         );
-        require(
-            votingHistory[proposal][msg.sender] == false,
-            "You have already voted"
-        );
+        require(!votingHistory[proposal][msg.sender], "You have already voted");
 
         votingHistory[proposal][msg.sender] = true;
 
@@ -90,10 +101,10 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
      * @dev Function called by any user to close a proposal vote when quorum
      * has been reached.
      */
-    function closeProposal(address proposal) public {
+    function closeProposal(address proposal) external {
         uint256 balance = address(this).balance;
         require(
-            proposalNo[proposal] + proposalYes[proposal] >=
+            (proposalNo[proposal] + proposalYes[proposal]) >=
                 (quorum * balance) / 100,
             "Quorum has not been reached"
         );
@@ -127,13 +138,17 @@ contract SimpleDAO is ISimpleDAO, ReentrancyGuard {
             "Amount requested too large"
         );
 
+        proposalStatus[msg.sender] = Status.IMPLEMENTED;
+
+        // payable(msg.sender).transfer(amountToSend);
+
         // we send the requested amount along with all available gas
         (bool success, ) = msg.sender.call{value: amountToSend}("");
         require(success, "Transfer failed.");
     }
 
     /**
-     * @dev Returns the minimum entrance fee in Ethereum
+     * @dev Returns the minimum entrance fee in ether
      */
     function minimumEntranceFee() public view returns (uint256) {
         return dollarEntranceFee;
